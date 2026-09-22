@@ -1,0 +1,17 @@
+{
+  "name": "feishu-record-link-extraction",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "飞书多维表格记录链接批量提取插件",
+  "output": "dist",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1 --port 5173 --strictPort",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview --host 127.0.0.1 --port 5173 --strictPort",
+    "test": "node --experimental-strip-types --test test/*.test.mjs"
+  },
+  "engines": { "node": ">=22.12.0" },
+  "dependencies": { "@lark-base-open/js-sdk": "1.0.2" },
+  "devDependencies": { "typescript": "5.9.3", "vite": "8.3.0" }
+}
