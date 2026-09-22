@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light dark" />
+    <title>记录链接 · 飞书多维表格</title>
+    <script type="module" crossorigin src="./assets/index-NQn9LxqW.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-DYqEsP28.css">
+  </head>
+  <body>
+    <main class="app">
+      <header class="header">
+        <div class="brand-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m10 13 4-4"/><path d="M8.5 15.5 7 17a3.54 3.54 0 0 1-5-5l4-4a3.54 3.54 0 0 1 5 0" transform="translate(2 0)"/><path d="m13 16 4-4a3.54 3.54 0 0 0-5-5l-1.5 1.5" transform="translate(2 -3)"/></svg>
+        </div>
+        <div class="header-copy">
+          <p class="eyebrow">多维表格工具</p>
+          <h1>记录链接</h1>
+        </div>
+        <span id="connection" class="connection">尚未连接</span>
+      </header>
+
+      <p class="intro">批量提取记录链接，轻松复制与导出。</p>
+
+      <section class="card setup" aria-labelledby="scope-label">
+        <div class="context-row">
+          <div class="context-copy">
+            <p class="label-small">当前数据表</p>
+            <p id="context">等待连接多维表格</p>
+          </div>
+          <button id="refresh" class="button-icon" type="button" title="刷新当前数据表和视图" aria-label="刷新当前数据表和视图" disabled>
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15.2 6.5A6 6 0 1 0 16 11"/><path d="M15.5 2.8v4.3h-4.3"/></svg>
+          </button>
+        </div>
+
+        <div class="scope-field">
+          <label id="scope-label" for="scope">提取范围</label>
+          <select id="scope" aria-describedby="scope-note" disabled>
+            <option value="selected" selected>当前选中记录</option>
+            <option value="view">当前视图记录</option>
+            <option value="table">整张表记录</option>
+          </select>
+          <p id="scope-note" class="hint">先在表格中选中需要提取链接的记录。</p>
+        </div>
+
+        <div class="action-row">
+          <button id="start" class="button button-primary" type="button" disabled>
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 3v10m-4-4 4 4 4-4M4 13v3h12v-3"/></svg>
+            提取链接
+          </button>
+          <button id="cancel" class="button button-secondary" type="button" hidden>停止</button>
+        </div>
+      </section>
+
+      <div class="status-area">
+        <p id="status" role="status" aria-live="polite">请在飞书多维表格的侧边栏中打开此插件。</p>
+        <progress id="progress" max="100" value="0" aria-label="链接提取进度" hidden></progress>
+      </div>
+
+      <section id="empty" class="empty-state" aria-label="等待提取">
+        <div class="empty-icon" aria-hidden="true">
+          <svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="5" width="24" height="30" rx="4"/><path d="M14 13h12M14 20h8M14 27h6"/><path d="m27 23 5 5 5-5m-5-5v10" class="accent-stroke"/></svg>
+        </div>
+        <h2>让每条记录都有直达入口</h2>
+        <p>选择提取范围后，链接会显示在这里。</p>
+      </section>
+
+      <section id="results" class="results" aria-labelledby="results-heading" hidden>
+        <div class="results-heading">
+          <h2 id="results-heading">提取结果</h2>
+          <span id="result-summary" class="result-summary"></span>
+        </div>
+        <div class="result-actions">
+          <button id="copy" class="button button-primary" type="button" disabled>
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="7" width="10" height="10" rx="2"/><path d="M12 4V3H3v9h1"/></svg>
+            复制全部链接
+          </button>
+          <button id="download" class="button button-secondary" type="button" disabled>导出 CSV</button>
+        </div>
+        <p id="preview-count" class="hint preview-count"></p>
+        <div class="table-wrap">
+          <table>
+            <colgroup><col class="column-number"/><col/><col class="column-link"/></colgroup>
+            <thead><tr><th scope="col">序号</th><th scope="col">记录</th><th scope="col">链接状态</th></tr></thead>
+            <tbody id="rows"></tbody>
+          </table>
+        </div>
+        <details id="manual-copy" class="manual-copy" hidden>
+          <summary>手动复制链接</summary>
+          <p class="hint">如无法自动复制，请选中下方全部链接后复制。</p>
+          <label class="sr-only" for="copy-text">全部成功提取的记录链接</label>
+          <textarea id="copy-text" rows="6" readonly spellcheck="false"></textarea>
+        </details>
+      </section>
+
+      <footer class="permission-note">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m8 1.5 5 2v4c0 3-5 6-5 6s-5-3-5-6v-4l5-2Z"/><path d="m5.6 7.6 1.6 1.6 3.2-3.2"/></svg>
+        <p>链接沿用原表权限，接收者需有访问权限。</p>
+      </footer>
+    </main>
+  </body>
+</html>
