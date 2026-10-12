@@ -182,11 +182,11 @@ ui.start.addEventListener('click', async () => {
     if (scope === 'view' && viewSettings !== JSON.stringify((await hostCall(snapshot.view.getMeta(), controller.signal)).property)) {
       throw new Error('读取期间视图筛选或排序发生变化，请重新提取。');
     }
-    const extracted = await extractLinks(bitable.bridge, snapshot, ids, controller.signal, (done, total) => {
+    const extracted = await extractLinks(snapshot.table, ids, controller.signal, (done, total) => {
       if (currentRevision !== revision) return;
       ui.progress.max = total || 1;
       ui.progress.value = done;
-      status(`正在提取链接：${done}/${total}`);
+      status(`正在提取短链：${done}/${total}`);
     });
     if (currentRevision !== revision) return;
     rows = extracted;
