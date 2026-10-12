@@ -12,6 +12,8 @@ const host = window.__host = {
   grid: true,
   fail: [],
   delay: 0,
+  linkOverride: null,
+  // Native getRecordShareLink calls, stored as record ID strings.
   calls: [],
   pageCalls: [],
   clipboard: '',
@@ -29,6 +31,12 @@ const table = {
   id: 'tblTest',
   async getName() { return '插件测试表（模拟数据）'; },
   async getViewById(id) { return { ...view, id }; },
+  async getRecordShareLink(recordId) {
+    host.calls.push(recordId);
+    if (host.delay) await new Promise(resolve => setTimeout(resolve, host.delay));
+    if (host.fail.includes(recordId)) throw new Error('模拟：记录无权限');
+    return host.linkOverride ?? `https://example.feishu.cn/record/mock-share-${recordId}`;
+  },
   async getRecordIdListByPage(params) {
     host.pageCalls.push(params);
     if (host.changeSettingsOnPage) host.settings = { filterInfo: 'changed' };
@@ -47,11 +55,8 @@ export const bitable = {
     onSelectionChange: subscribe('selection'), onTableDelete: subscribe('tableDelete'), onPermissionChange: subscribe('permission'),
   },
   bridge: {
-    async getBitableUrl(options) {
-      host.calls.push(options);
-      if (host.delay) await new Promise(resolve => setTimeout(resolve, host.delay));
-      if (host.fail.includes(options.recordId)) throw new Error('模拟：记录无权限');
-      return `https://example.feishu.cn/base/demo?table=${options.tableId}&view=${options.viewId}&record=${options.recordId}`;
+    async getBitableUrl() {
+      throw new Error('测试失败：不应调用生成长链的 getBitableUrl');
     },
     async getTheme() { return 'LIGHT'; },
     onThemeChange: subscribe('theme'),
