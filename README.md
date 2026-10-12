@@ -2,7 +2,22 @@
 
 项目名称：`feishu-record-link-extraction`。仓库：[zaqi77/feishu-record-link-extraction](https://github.com/zaqi77/feishu-record-link-extraction)。
 
-批量获取可直接打开单条记录详情的链接，用于替代逐行右键「复制记录链接」。支持当前选中记录、当前视图筛选结果及整张数据表；一键复制，每行一个链接，也可导出带记录 ID 的 CSV。
+批量获取飞书原生记录短链，用于替代逐行右键「复制记录链接」。支持当前选中记录、当前视图筛选结果及整张数据表；一键复制，每行一个链接，也可导出带记录 ID 的 CSV。
+
+v1.1.0 将链接来源改为 `table.getRecordShareLink(recordId)`，复制、导出和打开记录统一使用飞书返回的原生短链：
+
+```text
+https://你的租户.feishu.cn/record/飞书生成的分享标识
+```
+
+分享标识由飞书生成，不等于 `recordId`。插件原样保留返回值，并检查 HTTPS、`/record/…` 路径及无查询参数/片段；返回长链时标记失败，不退回带 `table/view/record/field` 参数的链接。
+
+## 更新到 v1.1.0
+
+- 下载 `feishu-record-link-extraction-v1.1.0.zip` 并解压。旧的 v1.0.0 ZIP 保留作历史版本。
+- 本地使用：在新版目录启动服务，再刷新飞书插件；不要同时运行旧版和新版的同一端口服务。
+- 静态部署或插件市场更新：使用本次重新构建的 `dist/`；源码变更不会自动更新已部署或已上架的插件。本次没有提交插件市场更新。
+- 更新后抽查一条记录：复制结果应为 `/record/…` 短链，打开后与右键「复制记录链接」指向同一条记录。
 
 ## 在 macOS 上使用
 
@@ -45,17 +60,17 @@ npm run build
 
 本项目为原生 TypeScript + CSS + 官方 `@lark-base-open/js-sdk@1.0.2`，无需 React 或服务端。生产产物已放在 `dist/`，`package.json` 声明 `"output": "dist"`，Vite 使用 `base: './'`，符合指南的相对资源路径要求。`dist` 特意不加入 `.gitignore`。
 
-正式使用可将 `dist` 内全部文件部署到支持 HTTPS 和 iframe 嵌入的静态服务器，再将自定义插件服务地址替换为部署地址。分享给其他人需要可访问的 HTTPS 服务；插件中心上架还需按官方指南提交并通过审核。当前交付没有发布到公共服务器或插件中心。
+正式使用可将 `dist` 内全部文件部署到支持 HTTPS 和 iframe 嵌入的静态服务器，再将自定义插件服务地址替换为部署地址。分享给其他人需要可访问的 HTTPS 服务；插件中心上架或更新还需按官方指南提交并通过审核。本次 v1.1.0 未更新公共托管服务或插件中心版本。
 
 ## API 与参考
 
 - [用户提供的开发指南](https://feishu.feishu.cn/docx/S1pMdbckEooVlhx53ZMcGGnMnKc)：2026-09-22 读取版本 453，核对前端、UI、性能、代码提交及本地调试章节。
-- [记录链接接口](https://lark-base-team.github.io/js-sdk-docs/zh/api/bridge.html#getbitableurl)：使用 `bitable.bridge.getBitableUrl({ tableId, viewId, recordId, fieldId: null })`，由飞书生成完整链接，`recordId` 非空时打开记录卡片；保留返回链接，不自行猜测域名或 Base/Wiki 路径。
+- [记录短链接口](https://lark-base-team.github.io/js-sdk-docs/zh/api/table#getrecordsharelink)：使用 `table.getRecordShareLink(recordId)`，返回 `Promise<string>`。官方说明获得链接的用户以多维表格权限访问；不调用视图开启分享或修改权限的接口。当前 SDK 1.0.2 已包含此方法。
 - [记录分页接口](https://lark-base-team.github.io/js-sdk-docs/zh/api/table.html#getrecordidlistbypage)：每页 200 条，循环到 `hasMore=false`；SDK 1.0.2 的 `pageToken` 为 number，原样传回。未使用最多仅返回 200 条的旧 `getRecordIdList`。
 - [选中记录接口](https://lark-base-team.github.io/js-sdk-docs/zh/api/view/grid.html#getselectedrecordidlist)：仅在 SDK 确认是 Grid 视图后调用 `getSelectedRecordIdList()`。
 
-这里实现的是“打开指定记录详情”的链接语义。官方文档没有声明 `getBitableUrl` 的输出与右键「复制记录链接」逐字一致；发布前应在你的真实多维表格里抽查一次菜单链接与插件链接均打开同一条记录，包含 Base/Wiki、高级权限及筛选外记录场景。
+官方文档没有保证短链的固定 token 长度、有效期或与菜单链接逐字一致。插件只接受需求中的 `/record/…` 格式；宿主不支持接口、权限不足或返回其他格式时，结果保留失败原因。2026-10-10 已在用户指定的真实 Base 抽查：当前视图 2 条记录均返回原生短链，第一条与原生右键「复制记录链接」的 URL 完全相等，打开后记录 ID 一致。这是该 Base 的实际结果；Wiki、高级权限及筛选外记录场景仍需验证。
 
 ## 本次验证
 
-详见 `验证记录.md`。测试与打包成功不代表已经在用户真实多维表格安装验收。
+2026-10-10 已通过模拟宿主测试和用户指定 Base 的实际验收。真实验收使用现有自定义插件加载本机 v1.1.0 服务，验证了当前视图 2 条记录的短链、第一条菜单链接与打开目标，以及飞书拦截自动剪贴板后的手动复制。模拟宿主覆盖的 451 条分页等场景，详见 `验证记录.md`。本次没有提交线上插件市场更新。
