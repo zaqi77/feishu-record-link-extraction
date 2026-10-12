@@ -10,6 +10,18 @@ const browser = await chromium.launch({ headless: true, ...(process.env.PLAYWRIG
 const page = await browser.newPage({ viewport: { width: 410, height: 950 } });
 const errors = [];
 page.on('pageerror', error => errors.push(error.message));
+const assertShortLinks = urls => {
+  for (const url of urls) {
+    const parsed = new URL(url);
+    assert.equal(parsed.protocol, 'https:');
+    assert.match(parsed.pathname, /^\/record\/[^/]+\/?$/);
+    assert.equal(parsed.search, '');
+    assert.equal(parsed.hash, '');
+    assert.equal(parsed.username, '');
+    assert.equal(parsed.password, '');
+    assert.ok(!/[?&](?:table|view|record)=/.test(url));
+  }
+};
 await mkdir('artifacts', { recursive: true });
 try {
   await page.goto('http://127.0.0.1:5173/');
@@ -28,18 +40,27 @@ try {
   };
   await clickStart();
   assert.match(await frame.locator('#result-summary').innerText(), /成功 3 条 \/ 失败 0 条 \/ 共 3 条/);
+  const selectedLinks = ['rec001', 'rec002', 'rec003'].map(id => `https://example.feishu.cn/record/mock-share-${id}`);
+  const resultLinks = await frame.locator('#rows a').evaluateAll(links => links.map(link => link.href));
+  assert.deepEqual(resultLinks, selectedLinks);
+  assertShortLinks(resultLinks);
+  assert.deepEqual(await app.evaluate(() => window.__host.calls), ['rec001', 'rec002', 'rec003']);
   await app.evaluate(() => {
     Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { async writeText(value) { window.__host.clipboard = value; } } });
   });
   await frame.locator('#copy').click();
-  assert.equal((await app.evaluate(() => window.__host.clipboard)).split('\n').length, 3);
+  const copiedLinks = (await app.evaluate(() => window.__host.clipboard)).split('\n');
+  assert.deepEqual(copiedLinks, selectedLinks);
+  assertShortLinks(copiedLinks);
 
   await app.evaluate(() => {
     Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { async writeText() { throw new Error('denied'); } } });
   });
   await frame.locator('#copy').click();
   await frame.locator('#manual-copy').waitFor({ state: 'visible' });
-  assert.equal((await frame.locator('#copy-text').inputValue()).split('\n').length, 3);
+  const manualLinks = (await frame.locator('#copy-text').inputValue()).split('\n');
+  assert.deepEqual(manualLinks, selectedLinks);
+  assertShortLinks(manualLinks);
 
   await frame.locator('#scope').selectOption('view');
   await clickStart();
@@ -53,6 +74,10 @@ try {
   assert.equal(csv.split('\r\n').length, 258);
   assert.ok(csv.includes('rec257'));
   assert.ok(!csv.includes('rec258'));
+  const csvLinks = Array.from(csv.matchAll(/"(https:[^"]+)"/g), match => match[1]);
+  assert.equal(csvLinks.length, 257);
+  assertShortLinks(csvLinks);
+  assert.equal(csvLinks.at(-1), 'https://example.feishu.cn/record/mock-share-rec257');
 
   await frame.locator('#scope').selectOption('table');
   await clickStart();
@@ -80,7 +105,17 @@ try {
   await clickStart();
   assert.match(await frame.locator('#result-summary').innerText(), /成功 2 条 \/ 失败 1 条/);
 
-  await app.evaluate(() => { window.__host.fail = []; });
+  await app.evaluate(() => {
+    window.__host.fail = [];
+    window.__host.linkOverride = 'https://example.feishu.cn/base/demo?table=tblTest&view=vewTest&record=rec001';
+  });
+  await clickStart();
+  assert.match(await frame.locator('#result-summary').innerText(), /成功 0 条 \/ 失败 3 条/);
+  assert.match(await frame.locator('#rows').innerText(), /未返回原生记录短链/);
+  assert.equal(await frame.locator('#rows a').count(), 0);
+  assert.equal(await frame.locator('#copy').isDisabled(), true);
+
+  await app.evaluate(() => { window.__host.linkOverride = null; });
   await clickStart();
   await page.screenshot({ path: 'artifacts/sidebar-light.png', fullPage: true, animations: 'disabled' });
   await app.evaluate(() => window.__host.emit('theme', { theme: 'DARK' }));
@@ -123,7 +158,7 @@ try {
   await frame.locator('#scope').selectOption('table');
   await app.evaluate(() => { window.__host.delay = 50; });
   await frame.locator('#start').click();
-  await frame.locator('#status').filter({ hasText: '正在提取链接' }).waitFor();
+  await frame.locator('#status').filter({ hasText: '正在提取短链' }).waitFor();
   await frame.locator('#cancel').click();
   await frame.locator('#cancel').waitFor({ state: 'hidden' });
   assert.match(await frame.locator('#status').innerText(), /已停止/);
@@ -139,7 +174,7 @@ try {
   assert.equal(await frame.locator('#results').isVisible(), false);
   assert.equal(await frame.locator('#copy').isDisabled(), true);
   assert.deepEqual(errors, []);
-  console.log('Browser checks passed: selected/view/table, 451 records, CSV, copy/fallback, empty/unsupported/error/cancel/switch, 360px and dark theme. Host is simulated; real Feishu acceptance remains pending.');
+  console.log('Browser checks passed: native /record/ short links in results/copy/manual copy/CSV, long-link rejection, selected/view/table, 451 records, empty/unsupported/error/cancel/switch, 360px and dark theme. Host is simulated; real Feishu acceptance remains pending.');
 } finally {
   await browser.close();
 }
